@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
-# Task 4 (Context Switch Overhead) — images + summary
+# Task 4 (Context Switch Overhead) — individual + comparison outputs
 # Usage examples:
 #   python3 task4_ctx.py ctx_light.csv --labels light
 #   python3 task4_ctx.py ctx_light.csv ctx_heavy.csv --labels light heavy
 #
-# Inputs: CSV with columns: ts_ns,prev_pid,next_pid,run_ns
+# Input CSV columns: ts_ns,prev_pid,next_pid,run_ns
 # Outputs:
-#   ctx_<label>_hist.png                  # histogram of run_ns (ms)
-#   ctx_<label>_switches_per_sec.png      # per-second switch rate (bar)
-#   ctx_compare_hist.png                  # overlay of run_ns hist (if 2+ files)
-#   ctx_compare_switches_per_sec.png      # overlay of per-sec rates (if 2+ files)
-#   ctx_summary.csv                       # stats table for report
+#   ctx_<label>_hist.png
+#   ctx_<label>_switches_per_sec.png
+#   ctx_compare_hist.png
+#   ctx_compare_switches_per_sec.png
+#   ctx_summary.csv
 
 import argparse
 from pathlib import Path
+from typing import Optional, List
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -42,9 +43,12 @@ def save_hist_run_ms(df: pd.DataFrame, label: str, outdir: Path) -> Path:
     return outfile
 
 def per_second_counts(df: pd.DataFrame) -> pd.DataFrame:
+    # Back-compat with older pandas (no reset_index(names="..."))
     start = df["ts_s"].min()
     secs = (df["ts_s"] - start).astype(int)
-    return secs.value_counts().sort_index().rename("switches").reset_index(names="sec")
+    ps = secs.value_counts().sort_index().rename("switches").reset_index()
+    ps.columns = ["sec", "switches"]
+    return ps
 
 def save_rate_bar(per_sec: pd.DataFrame, label: str, outdir: Path) -> Path:
     plt.figure()
@@ -58,7 +62,7 @@ def save_rate_bar(per_sec: pd.DataFrame, label: str, outdir: Path) -> Path:
     plt.close()
     return outfile
 
-def save_compare_hist(dfs, labels, outdir: Path) -> Path | None:
+def save_compare_hist(dfs: List[pd.DataFrame], labels: List[str], outdir: Path) -> Optional[Path]:
     if len(dfs) < 2:
         return None
     plt.figure()
@@ -75,7 +79,7 @@ def save_compare_hist(dfs, labels, outdir: Path) -> Path | None:
     plt.close()
     return outfile
 
-def save_compare_rate(per_secs, labels, outdir: Path) -> Path | None:
+def save_compare_rate(per_secs: List[pd.DataFrame], labels: List[str], outdir: Path) -> Optional[Path]:
     if len(per_secs) < 2:
         return None
     merged = None
