@@ -1,0 +1,3 @@
+group,count,avg_wakes,avg_switches,avg_lifetime_ms
+short (<200ms),0,,,
+long (>=200ms),18,1.0,14686.888888888889,2008198.1202068334
