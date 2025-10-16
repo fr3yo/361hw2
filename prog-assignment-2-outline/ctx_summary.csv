@@ -1,0 +1,5 @@
+label,csv,count_switches,duration_s,switches_per_sec,run_ms_p50,run_ms_p90,run_ms_p99,histogram_image,rate_image
+light,ctx_light.csv,76480.0,24.471470858999965,3125.2718907115736,0.013636,0.3171090000000005,9.01931251,ctx_light_hist.png,ctx_light_switches_per_sec.png
+heavy,ctx_heavy.csv,59251.0,24.737018764000027,2395.236085854793,0.017036,0.446342,9.6118505,ctx_heavy_hist.png,ctx_heavy_switches_per_sec.png
+comparison,,,,,,,,ctx_compare_hist.png,
+comparison,,,,,,,,,ctx_compare_switches_per_sec.png
