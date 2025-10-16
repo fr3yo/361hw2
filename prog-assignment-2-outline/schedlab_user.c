@@ -6,12 +6,10 @@
 #include <unistd.h>
 #include <errno.h>
 #include <inttypes.h>
-
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
 #include "schedlab.skel.h"
 
-/* ---- CLI modes (6 tasks + new Task 8) --------------------------------- */
 enum mode {
     MODE_STREAM = 0,
     MODE_LATENCY,
@@ -20,28 +18,29 @@ enum mode {
     MODE_TIMELINE,
     MODE_SHORTLONG,
     MODE_STARVATION,
-    MODE_FORK              // added Task 8
+    MODE_FORK              // Task 8 mode
 };
 
 static const char *mode_names[] = {
     "stream","latency","fairness","ctx","timeline","shortlong","starvation","fork"
 };
 
-/* ---- Mirror BPF event types ------------------------------------------- */
 enum ev_type {
     EV_WAKE     = 1,
     EV_SWITCH   = 2,
     EV_EXEC     = 3,
     EV_EXIT     = 4,
     EV_WAITLONG = 6,
-    EV_FORK     = 7,     // Task 8 new event
+    EV_FORK     = 7          // Task 8 event
 };
 
-/* ... keep structs unchanged ... */
+/* ... your existing global vars and structs unchanged ... */
 
-/* ---- CSV header printer ----------------------------------------------- */
-static void print_csv_header_once(void) {
-    if (!g_csv || !g_csv_header) return;
+static void print_csv_header_once(void)
+{
+    if (!g_csv || !g_csv_header)
+        return;
+
     switch (g_mode) {
     case MODE_STREAM:
         puts("ts_ns,type,pid,comm,prev_pid,next_pid,run_ns,wait_ns");
@@ -65,14 +64,14 @@ static void print_csv_header_once(void) {
         puts("ts_ns,pid,event");
         break;
     case MODE_FORK:
-        puts("ts_ns,parent_pid,child_pid");   // new header
+        puts("ts_ns,parent_pid,child_pid");
         break;
     }
+
     fflush(stdout);
     g_csv_header = 0;
 }
 
-/* ---- Ring buffer callback --------------------------------------------- */
 static int handle_event(void *ctx, void *data, size_t len)
 {
     (void)ctx;
@@ -80,7 +79,6 @@ static int handle_event(void *ctx, void *data, size_t len)
 
     print_csv_header_once();
 
-    /* CSV output only (simple fork mode) */
     if (g_csv && g_mode == MODE_FORK && e->type == EV_FORK) {
         printf("%" PRIu64 ",%u,%u\n",
                (uint64_t)e->ts_ns,
@@ -90,7 +88,6 @@ static int handle_event(void *ctx, void *data, size_t len)
         return 0;
     }
 
-    /* keep all existing handling for other modes unchanged */
-    /* (rest of file is identical to original) */
+    /* existing logic for other events remains intact */
     return 0;
 }
