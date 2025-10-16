@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
-# Task 4 (Context Switch Overhead) — individual + comparison outputs
-# Usage:
+# Task 4 (Context Switch Overhead) — images + summary
+# Usage examples:
+#   python3 task4_ctx.py ctx_light.csv --labels light
 #   python3 task4_ctx.py ctx_light.csv ctx_heavy.csv --labels light heavy
-#   (also works with a single CSV/label)
 #
-# Input CSV columns: ts_ns,prev_pid,next_pid,run_ns
+# Inputs: CSV with columns: ts_ns,prev_pid,next_pid,run_ns
+# Outputs:
+#   ctx_<label>_hist.png                  # histogram of run_ns (ms)
+#   ctx_<label>_switches_per_sec.png      # per-second switch rate (bar)
+#   ctx_compare_hist.png                  # overlay of run_ns hist (if 2+ files)
+#   ctx_compare_switches_per_sec.png      # overlay of per-sec rates (if 2+ files)
+#   ctx_summary.csv                       # stats table for report
 
 import argparse
 from pathlib import Path
@@ -14,9 +20,9 @@ import matplotlib.pyplot as plt
 def load_ctx(csv_path: Path) -> pd.DataFrame:
     df = pd.read_csv(csv_path)
     need = {"ts_ns","prev_pid","next_pid","run_ns"}
-    if not need.issubset(df.columns):
-        missing = ", ".join(sorted(need - set(df.columns)))
-        raise ValueError(f"Missing columns in {csv_path}: {missing}")
+    missing = need - set(df.columns)
+    if missing:
+        raise ValueError(f"Missing columns in {csv_path}: {', '.join(sorted(missing))}")
     df["ts_s"] = df["ts_ns"] / 1e9
     df["run_ms"] = df["run_ns"] / 1e6
     df = df[pd.notnull(df["run_ms"]) & (df["run_ms"] >= 0)]
@@ -37,8 +43,8 @@ def save_hist_run_ms(df: pd.DataFrame, label: str, outdir: Path) -> Path:
 
 def per_second_counts(df: pd.DataFrame) -> pd.DataFrame:
     start = df["ts_s"].min()
-    sec = (df["ts_s"] - start).astype(int)
-    return sec.value_counts().sort_index().rename("switches").reset_index(names="sec")
+    secs = (df["ts_s"] - start).astype(int)
+    return secs.value_counts().sort_index().rename("switches").reset_index(names="sec")
 
 def save_rate_bar(per_sec: pd.DataFrame, label: str, outdir: Path) -> Path:
     plt.figure()
@@ -72,7 +78,6 @@ def save_compare_hist(dfs, labels, outdir: Path) -> Path | None:
 def save_compare_rate(per_secs, labels, outdir: Path) -> Path | None:
     if len(per_secs) < 2:
         return None
-    # align on sec for clean overlay
     merged = None
     for ps, lab in zip(per_secs, labels):
         ps2 = ps.set_index("sec").rename(columns={"switches": lab})
